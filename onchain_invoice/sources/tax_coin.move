@@ -1,7 +1,9 @@
 module onchain_invoice::tax_coin;
 
 use sui::coin_registry;
-use sui::coin::{Self, TreasuryCap};
+use sui::coin::{Self, Coin, TreasuryCap};
+use onchain_invoice::treasury::{Self, Treasury};
+use onchain_invoice::usdc::USDC;
 
 public struct TAX_COIN has drop {}
 
@@ -21,7 +23,15 @@ fun init(witness: TAX_COIN, ctx: &mut TxContext) {
     transfer::public_transfer(treasury_cap, ctx.sender());
 }
 
-// public fun faucet(treasury_cap: &mut TreasuryCap<>, amount: u64, recipient: address, ctx: &mut TxContext) {
-//     let coin = coin::mint(treasury_cap, amount, ctx);
-//     transfer::public_transfer(coin, recipient);
-// }
+public fun buy_quota(
+    in_coin: Coin<USDC>,
+    treasury_cap: &mut TreasuryCap<TAX_COIN>,
+    treasury: &mut Treasury,
+    ctx: &mut TxContext
+) {
+    let in_coin_value = coin::value(&in_coin);
+    let out_coin_amount = in_coin_value * 10;
+    let out_coin = coin::mint<TAX_COIN>(treasury_cap, out_coin_amount, ctx);
+    treasury::input(treasury, in_coin, ctx);
+    transfer::public_transfer(out_coin, ctx.sender())
+}
