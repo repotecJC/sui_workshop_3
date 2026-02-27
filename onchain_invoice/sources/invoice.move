@@ -6,6 +6,9 @@ use std::string::String;
 use sui::coin::{Self, Coin};
 use sui::balance::{Self, Balance};
 use onchain_invoice::tax_coin::TAX_COIN;
+use onchain_invoice::treasury::{Self,Treasury};
+const EExpired: u64 = 0;
+const EWrongWinner: u64 = 1;
 
 public struct Invoice has key, store {
     id: UID,
@@ -63,4 +66,19 @@ public fun init_invoice(tax: Coin<TAX_COIN>, system: &mut System, protocol: Stri
     let balance = coin::into_balance(tax);
     balance::join(&mut system.balance, balance);
     transfer::public_transfer(invoice, ctx.sender());
+}
+
+public fun claim_lottery(system: &mut System, invoice: Invoice, treasury: &mut Treasury, clock: &Clock, ctx: &mut TxContext) {
+    assert!(invoice.timestamp <= system.timestamp, EExpired);
+    assert!(invoice.invoice_number == system.winner, EWrongWinner);
+    let coin = treasury::output(treasury, ctx);
+    transfer::public_transfer(coin, ctx.sender());
+    let Invoice {
+        id: id,
+        protocol: _,
+        amount: _,
+        timestamp: _,
+        invoice_number: _,
+    } = invoice;
+    object::delete(id);
 }
