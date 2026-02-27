@@ -1,6 +1,7 @@
 module onchain_invoice::invoice;
 
 use sui::clock::{Self, Clock};
+use sui::random::{Self, Random};
 use std::string::String;
 use sui::coin::{Self, Coin};
 use sui::balance::{Self, Balance};
@@ -18,7 +19,31 @@ public struct System has key, store {
     id: UID,
     count: u64,
     tax_value: u64,
-    balance: Balance<TAX_COIN>
+    balance: Balance<TAX_COIN>,
+    timestamp: u64,
+    winner: u64,
+    counter: u64,
+}
+
+fun init(ctx: &mut TxContext) {
+    let system = System {
+        id: object::new(ctx),
+        count: 0,
+        tax_value: 100,
+        balance: balance::zero(),
+        timestamp: 0,
+        winner: 0,
+        counter: 0,
+    };
+    transfer::share_object(system);
+}
+
+public fun lottery(system: &mut System, random: &Random, clock: &Clock, ctx: &mut TxContext) {
+    let mut generator = random::new_generator(random, ctx);
+    let winner_index = generator.generate_u64_in_range(1, system.count);
+    system.winner = winner_index;
+    system.timestamp = clock::timestamp_ms(clock);
+    system.counter = 0;
 }
 
 #[allow(lint(self_transfer))]
@@ -32,8 +57,8 @@ public fun init_invoice(tax: Coin<TAX_COIN>, system: &mut System, protocol: Stri
         id,
         protocol,
         amount,
-        timestamp,
-        invoice_number,
+            timestamp,
+            invoice_number,
     };
     let balance = coin::into_balance(tax);
     balance::join(&mut system.balance, balance);

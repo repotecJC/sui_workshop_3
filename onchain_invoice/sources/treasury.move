@@ -2,6 +2,7 @@ module onchain_invoice::treasury;
 
 use sui::balance::{Self, Balance};
 use sui::coin::{Self, Coin};
+
 use onchain_invoice::usdc::USDC;
 
 public struct Treasury has key {
@@ -17,7 +18,7 @@ fun init(ctx: &mut TxContext) {
     transfer::share_object(treasury);
 }
 
-public fun input(treasury: &mut Treasury, coin: Coin<USDC>, ctx: &mut TxContext) {
+public fun input(treasury: &mut Treasury, coin: Coin<USDC>, _ctx: &mut TxContext) {
     let balance = coin::into_balance(coin);
     balance::join(&mut treasury.pool, balance);
 }
