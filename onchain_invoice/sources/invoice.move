@@ -10,6 +10,10 @@ use onchain_invoice::treasury::{Self,Treasury};
 const EExpired: u64 = 0;
 const EWrongWinner: u64 = 1;
 
+public struct Admin has key, store {
+    id: UID,
+}
+
 public struct Invoice has key, store {
     id: UID,
     protocol: String,
@@ -38,10 +42,14 @@ fun init(ctx: &mut TxContext) {
         winner: 0,
         counter: 0,
     };
+    let admin = Admin {
+        id: object::new(ctx),
+    };
     transfer::share_object(system);
+    transfer::public_transfer(admin, ctx.sender());
 }
 
-public fun lottery(system: &mut System, random: &Random, clock: &Clock, ctx: &mut TxContext) {
+public fun lottery(_admin: &Admin, system: &mut System, random: &Random, clock: &Clock, ctx: &mut TxContext) {
     let mut generator = random::new_generator(random, ctx);
     let winner_index = generator.generate_u64_in_range(1, system.count);
     system.winner = winner_index;
