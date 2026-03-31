@@ -1,0 +1,2 @@
+export const invoicePackageID = "0x40fa496ea5140ebd42cfa49a065c52c6f0830af239aeeaf13e601ecf90bf0f9a"
+export const mintPackageID = "0x2a0712b66c5f23d98d994943f46df26d0cb61776f8cf21967026418c31246179"

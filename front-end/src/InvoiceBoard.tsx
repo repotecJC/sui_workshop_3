@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,21 +13,46 @@ import {
   Trophy,
   ArrowRightLeft,
 } from "lucide-react";
-
+import { mintUSDC } from "./move/mintUSDC";
+import { Transaction } from "@mysten/sui/transactions";
+import { useCurrentAccount } from "@mysten/dapp-kit-react";
+import { dAppKit } from "./dApp-kit";
+import { buyTaxCoin } from "./move/buyTaxCoin";
 export function InvoiceBoard() {
   const [usdcAmount, setUsdcAmount] = useState("");
   const [taxCoinAmount, setTaxCoinAmount] = useState("");
   const [protocolName, setProtocolName] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
-
+  const [coins, setCoins] = useState<any[]>([]);
+  const currentAccount = useCurrentAccount();
   const handleMintUSDC = async () => {
-    console.log("Minting USDC:", usdcAmount);
-    // TODO: Implement USDC minting logic
+    if (currentAccount == null) {
+      alert("No current account found");
+      return;
+    }
+    const tx = new Transaction();
+    await mintUSDC(tx, currentAccount?.address || "", parseInt(usdcAmount));
+    const result = await dAppKit.signAndExecuteTransaction({ transaction: tx });
+    alert( "Your transaction was successful: " + result.Transaction?.digest)
+  };  
+  const fetchCoins = async () => {
+      const result = await dAppKit.getClient("testnet").listCoins({
+        owner: currentAccount?.address!,
+        coinType: "0x40fa496ea5140ebd42cfa49a065c52c6f0830af239aeeaf13e601ecf90bf0f9a::usdc::USDC"
+      })
+      setCoins(result.objects);
+      console.log(result.objects)
   };
-
   const handleBuyTaxCoin = async () => {
-    console.log("Buying Tax Coin with USDC:", taxCoinAmount);
-    // TODO: Implement Buy Tax Coin logic
+    fetchCoins();
+    const tx = new Transaction();
+    const coin = tx.object(coins[0].objectId);
+    if(coins.length > 1)tx.mergeCoins(coin, coins.slice(1).map((coin) => tx.object(coin.objectId)));
+    const [taxCoin] = tx.splitCoins(coin, [tx.pure.u64(parseInt(taxCoinAmount))]);
+    await buyTaxCoin(tx, taxCoin);
+    // tx.transferObjects([restCoin], currentAccount?.address || "");
+    const result = await dAppKit.signAndExecuteTransaction({ transaction: tx });
+    alert( "Your transaction was successful: " + result.Transaction?.digest)
   };
 
   const handleCreateInvoice = async () => {
@@ -44,6 +69,11 @@ export function InvoiceBoard() {
     console.log("Claiming Prize for Invoice ID:", invoiceId);
     // TODO: Implement Claim Prize logic
   };
+
+  useEffect(() => {
+
+    fetchCoins();
+  }, [currentAccount?.address]);
 
   return (
     <div className="space-y-8 mt-8">
